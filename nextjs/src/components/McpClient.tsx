@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import {
   initializeClient,
   getSessionId,
@@ -9,7 +9,6 @@ import {
   rollDice,
   getWether,
   getTransport,
-  streamChat,
 } from "@/libs/mcp-client";
 
 export default function McpClient() {
@@ -20,11 +19,8 @@ export default function McpClient() {
   const [wetherResult, setWetherResult] = useState<string | null>(null);
   const [sides, setSides] = useState(6);
   const [city, setCity] = useState("");
-  const [prompt, setPrompt] = useState("");
-  const [chatResponse, setChatResponse] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     const initialize = async () => {
@@ -102,70 +98,6 @@ export default function McpClient() {
     }
   }
 
-  async function handleStreamChat() {
-    if (prompt == null && prompt === "") {
-      setError("有効な値を入力してください");
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
-    abortControllerRef.current = new AbortController();
-
-    try {
-      const stream = await streamChat(prompt);
-      console.log(stream);
-      const reader = stream.getReader();
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        // テキストデコーダーでデータを変換
-        const decoder = new TextDecoder();
-        const text = decoder.decode(value);
-
-        // SSEフォーマットからデータを抽出
-        const lines = text.split("\n");
-        let message = "";
-
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            const data = line.substring(6);
-            try {
-              const parsed = JSON.parse(data);
-              if (
-                parsed.content &&
-                parsed.content[0] &&
-                parsed.content[0].text
-              ) {
-                message = parsed.content[0].text;
-                setChatResponse(message);
-              }
-            } catch (e) {
-              console.error("JSONパースエラー:", e);
-            }
-          }
-        }
-      }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      if (err.name !== "AbortError") {
-        setError(
-          `ストリーミングチャットエラー: ${err instanceof Error ? err.message : String(err)}`,
-        );
-      }
-    } finally {
-      setLoading(false);
-      abortControllerRef.current = null;
-    }
-  }
-
   const handleTerminateSession = async () => {
     setLoading(true);
     setError(null);
@@ -221,7 +153,7 @@ export default function McpClient() {
       <hr />
 
       <div>
-        <p>サイコロツール</p>
+        <h2>サイコロツール</h2>
         <div>
           <label htmlFor="sides">サイコロの面の数:</label>
           <input
@@ -245,7 +177,7 @@ export default function McpClient() {
       <hr />
 
       <div>
-        <p>天気予報取得ツール</p>
+        <h2>天気予報取得ツール</h2>
         <div>
           <label htmlFor="city">取得対象の都市：</label>
           <input
@@ -262,31 +194,6 @@ export default function McpClient() {
           {loading && <p>ロード中...</p>}
           {!loading && !wetherResult && <p>天気を取得してください</p>}
           {!loading && wetherResult && <div>{wetherResult}</div>}
-        </div>
-      </div>
-
-      <hr />
-
-      <div>
-        <h2>Streaming Chat</h2>
-        <div>
-          <label htmlFor="prompt">Prompt</label>
-          <input
-            type="text"
-            id="prompt"
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-          />
-        </div>
-        <button onClick={handleStreamChat} disabled={loading}>
-          チャット開始
-        </button>
-        <div>
-          {loading && <p>ロード中...</p>}
-          {!loading && !chatResponse && <p>チャットを開始してください</p>}
-          {!loading && chatResponse && (
-            <div style={{ whiteSpace: "pre-wrap" }}>{chatResponse}</div>
-          )}
         </div>
       </div>
 

@@ -14,7 +14,7 @@ let client: Client | null = null;
 let transport: StreamableHTTPClientTransport | null = null;
 let sessionId: string | undefined;
 
-const SERVER_URL = "http://localhost:3001/mcp";
+const SERVER_URL = "http://localhost:3000/api/mcp";
 
 export async function initializeClient() {
   if (client && transport) return client;
@@ -155,12 +155,6 @@ export async function listTools() {
   }
 }
 
-/**
- * サイコロを振る非同期関数 - サーバー上のdiceツールを呼び出してサイコロの結果を取得
- * @param sides サイコロの面数
- * @returns サイコロの結果（文字列）
- * @throws 入力値が不正な場合、またはサイコロ実行中にエラーが発生した場合
- */
 export async function rollDice(sides: number) {
   if (isNaN(sides) || sides <= 0) {
     throw new Error("Invalid number of sides");
@@ -217,53 +211,6 @@ export async function getWether(city: string) {
     }
   } catch (error) {
     console.error("Error rolling dice:", error);
-    throw error;
-  }
-}
-
-export async function streamChat(
-  prompt: string,
-): Promise<ReadableStream<string>> {
-  // const mcpClient = await initializeClient();
-
-  try {
-    const response = await fetch(SERVER_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "text/event-stream",
-        "Mcp-Session-Id": getSessionId() || "",
-      },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        method: "stream_chat",
-        params: { prompt },
-        id: Date.now().toString(),
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`ストリーミングチャットエラー: ${response.statusText}`);
-    }
-
-    return response.body as unknown as ReadableStream<string>;
-    // const req: CallToolRequest = {
-    //   method: "tools/call",
-    //   params: {
-    //     name: "stream_chat",
-    //     arguments: { prompt },
-    //   },
-    // };
-
-    // const res = await mcpClient.request(req, CallToolResultSchema);
-    // const textContent = res.content.find((item) => item.type === "text");
-    // if (textContent) {
-    //   return textContent.text as unknown as ReadableStream<string>;
-    // } else {
-    //   throw new Error("No text content in response");
-    // }
-  } catch (error) {
-    console.error("Error stream chat:", error);
     throw error;
   }
 }

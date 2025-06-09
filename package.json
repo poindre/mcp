@@ -2,7 +2,8 @@
   "name": "mcp",
   "workspaces": [
     "server",
-    "client"
+    "client",
+    "nextjs"
   ],
   "devDependencies": {
     "@types/node": "^22.15.30",
